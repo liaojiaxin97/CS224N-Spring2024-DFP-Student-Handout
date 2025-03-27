@@ -50,7 +50,43 @@ class BertSelfAttention(nn.Module):
     #   [bs, seq_len, num_attention_heads * attention_head_size = hidden_size].
 
     ### TODO
-    raise NotImplementedError
+    bs, num_attention_heads,seq_len,d  = key.shape
+    # Derive attention scores
+    attn_scores = query @ key.transpose(2,3) / (self.attention_head_size ** 0.5)
+    #以下两行代码等价于上一行代码，但是无法通过sanity_check
+    # attn_scores = key @ query.transpose(2, 3) #[bs,num_attention_heads,seq_len,seq_len]
+    # attn_scores = attn_scores / (self.attention_head_size ** 0.5) #公式 
+    # Apply attention mask
+    if attention_mask is not None:
+      attn_scores += attention_mask
+    
+    attn_wts = F.softmax(attn_scores,dim = -1)
+    attn_wts = self.dropout(attn_wts)
+
+    attn_wts = attn_wts @ value
+
+    attn = attn_wts.transpose(1,2).reshape(bs,seq_len,-1)
+    return attn
+
+
+
+    # if attention_mask is not None:
+    #     #mask矩阵中包含0和-inf，加到原矩阵中后，原矩阵中有token的位置数字不变，无token且被padding代替的位置变为-inf
+    #     attn_scores = attn_scores + attention_mask #[bs,num_attention_heads,seq_len,seq_len]
+
+    # attn_wts = F.softmax(attn_scores,dim = -1) #[bs,num_attention_heads,seq_len,seq_len]
+    # attn_wts = self.dropout(attn_wts)
+    
+    # attn_wts = attn_wts @ value  #[bs,num_attention_heads,seq_len,seq_len] * [bs,num_attention_heads,seq_len,d] = [bs,num_attention_heads,seq_len,d]
+
+    # #view()要求张量在内存中是连续的。如果张量的内存布局不连续，可能会报错。
+    # #reshape()它会在必要时自动调用 contiguous() 来确保张量是连续的。
+    # #atten_out =  attn_wts.transpose(1,2).contiguous().view(bs,seq_len,num_attention_heads * d) #
+    # attn =  attn_wts.transpose(1,2).reshape(bs,seq_len,-1) #
+    # return attn
+
+
+
 
 
   def forward(self, hidden_states, attention_mask):
@@ -90,15 +126,24 @@ class BertLayer(nn.Module):
   def add_norm(self, input, output, dense_layer, dropout, ln_layer):
     """
     This function is applied after the multi-head attention layer or the feed forward layer.
-    input: the input of the previous layer
-    output: the output of the previous layer
-    dense_layer: used to transform the output
+    input: the input of the previous layer 
+    output: the output of the previous layer 
+    dense_layer: used to transform the output 
     dropout: the dropout to be applied 
     ln_layer: the layer norm to be applied
     """
     # Hint: Remember that BERT applies dropout to the transformed output of each sub-layer,
     # before it is added to the sub-layer input and normalized with a layer norm.
     ### TODO
+    #Transform the sub-layer output
+    output = dense_layer(output)
+    output = dropout(output)
+
+    #Apply add & Norm
+    output = output + input
+    output = ln_layer(output)
+    return output
+
     raise NotImplementedError
 
 
@@ -113,7 +158,18 @@ class BertLayer(nn.Module):
     4. An add-norm operation that takes the input and output of the feed forward layer.
     """
     ### TODO
-    raise NotImplementedError
+
+    #MHA
+    x = hidden_states
+    h = self.self_attention(x,attention_mask = attention_mask)
+    x = self.add_norm(x,h,self.attention_dense,self.attention_dropout,self.attention_layer_norm)
+    
+    #FF
+    h = self.interm_af(self.interm_dense(x))
+    output = self.add_norm(x,h,self.out_dense,self.out_dropout,self.out_layer_norm)
+
+    return output
+
 
 
 
@@ -156,14 +212,16 @@ class BertModel(BertPreTrainedModel):
     # Get word embedding from self.word_embedding into input_embeds.
     inputs_embeds = None
     ### TODO
-    raise NotImplementedError
+    input_embeds = self.word_embedding(input_ids)
+
 
 
     # Use pos_ids to get position embedding from self.pos_embedding into pos_embeds.
     pos_ids = self.position_ids[:, :seq_length]
     pos_embeds = None
     ### TODO
-    raise NotImplementedError
+    pos_embeds = self.pos_embedding(pos_ids)
+
 
 
     # Get token type ids. Since we are not considering token type, this embedding is
@@ -173,6 +231,10 @@ class BertModel(BertPreTrainedModel):
 
     # Add three embeddings together; then apply embed_layer_norm and dropout and return.
     ### TODO
+    embeds = input_embeds + pos_embeds + tk_type_embeds
+    #先过norm再dropout
+    embeds = self.embed_dropout(self.embed_layer_norm(embeds))
+    return embeds
     raise NotImplementedError
 
 

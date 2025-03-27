@@ -2,13 +2,15 @@ import torch
 from bert import BertModel
 
 
-sanity_data = torch.load("./sanity_check.data")
+sanity_data = torch.load("./sanity_check.data",weights_only=False)
 sent_ids = torch.tensor([[101, 7592, 2088, 102, 0, 0, 0, 0],
                          [101, 7592, 15756, 2897, 2005, 17953, 2361, 102]])
 att_mask = torch.tensor([[1, 1, 1, 1, 0, 0, 0, 0],[1, 1, 1, 1, 1, 1, 1, 1]])
 
 # Load model.
-bert = BertModel.from_pretrained('bert-base-uncased')
+model_path = "models--bert-base-uncased/snapshots/86b5e0934494bd15c9632b12f734a8a67f723594"
+#bert = BertModel.from_pretrained('google-bert/bert-base-uncased')
+bert = BertModel.from_pretrained(model_path,local_files_only=True)
 outputs = bert(sent_ids, att_mask)
 att_mask = att_mask.unsqueeze(-1)
 outputs['last_hidden_state'] = outputs['last_hidden_state'] * att_mask
