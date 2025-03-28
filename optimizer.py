@@ -60,7 +60,36 @@ class AdamW(Optimizer):
                 # Refer to the default project handout for more details.
 
                 ### TODO
-                raise NotImplementedError
+                beta1,beta2 = group["betas"]
+                eps = group["eps"]
+                weight_decay = group["weight_decay"]
 
+                if state == dict():
+                    t = 0 
+                    #*grad.shape（2,3,4） 会被解包为 2, 3, 4
+                    m = torch.zeros(*grad.shape,dtype=torch.float32,device = grad.device)
+                    v = torch.zeros(*grad.shape,dtype=torch.float32,device = grad.device)
+                else:
+                    t,m,v = state["t"],state["m"],state["v"]
 
+                t += 1
+                m = beta1*m + (1-beta1)*grad
+                v = beta2*v + (1-beta2)*(grad**2)
+
+                bias_corrected1 = (1 - beta1 ** t)
+                bias_corrected2 = (1 - beta2 ** t) ** 0.5
+                alpha_t = alpha * (bias_corrected2/bias_corrected1)
+
+                # Update model parameters
+                p_new = p.data - alpha_t * m / (torch.sqrt(v) + eps)
+
+                # Apply weight decay
+                #将权重衰减作为参数更新后的独立步骤，可以更清晰地分离梯度更新和正则化操作，
+                #同时避免对优化器状态（如动量）的干扰。这种实现方式在实践中非常常见，尤其是在像 Adam、RMSProp 等复杂优化器中。
+                p.data = p_new - alpha * weight_decay * p.data
+
+                # Save new states
+                self.state[p]["t"] = t
+                self.state[p]["m"] = m
+                self.state[p]["v"] = v
         return loss

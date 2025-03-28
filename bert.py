@@ -235,7 +235,7 @@ class BertModel(BertPreTrainedModel):
     #先过norm再dropout
     embeds = self.embed_dropout(self.embed_layer_norm(embeds))
     return embeds
-    raise NotImplementedError
+
 
 
   def encode(self, hidden_states, attention_mask):
