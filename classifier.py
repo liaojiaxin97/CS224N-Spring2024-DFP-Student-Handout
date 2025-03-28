@@ -12,6 +12,7 @@ from bert import BertModel
 from optimizer import AdamW
 from tqdm import tqdm
 
+model_path = "/root/autodl-tmp/models--bert-base-uncased/snapshots/86b5e0934494bd15c9632b12f734a8a67f723594"
 
 TQDM_DISABLE=False
 
@@ -37,8 +38,9 @@ class BertSentimentClassifier(torch.nn.Module):
     def __init__(self, config):
         super(BertSentimentClassifier, self).__init__()
         self.num_labels = config.num_labels
-        self.bert = BertModel.from_pretrained('models--bert-base-uncased/snapshots/86b5e0934494bd15c9632b12f734a8a67f723594')
+        #self.bert = BertModel.from_pretrained('models--bert-base-uncased/snapshots/86b5e0934494bd15c9632b12f734a8a67f723594')
 
+        self.bert = BertModel.from_pretrained(model_path,local_files_only=True)
         # Pretrain mode does not require updating BERT paramters.
         assert config.fine_tune_mode in ["last-linear-layer", "full-model"]
         for param in self.bert.parameters():
@@ -70,8 +72,9 @@ class SentimentDataset(Dataset):
     def __init__(self, dataset, args):
         self.dataset = dataset
         self.p = args
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-
+        model_path = "/root/autodl-tmp/models--bert-base-uncased/snapshots/86b5e0934494bd15c9632b12f734a8a67f723594"
+        #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        self.tokenizer = BertTokenizer.from_pretrained(model_path,local_files_only=True)
     def __len__(self):
         return len(self.dataset)
 
