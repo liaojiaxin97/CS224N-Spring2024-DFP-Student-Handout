@@ -8,8 +8,8 @@ sent_ids = torch.tensor([[101, 7592, 2088, 102, 0, 0, 0, 0],
 att_mask = torch.tensor([[1, 1, 1, 1, 0, 0, 0, 0],[1, 1, 1, 1, 1, 1, 1, 1]])
 
 # Load model.
-model_path = "models--bert-base-uncased/snapshots/86b5e0934494bd15c9632b12f734a8a67f723594"
-#bert = BertModel.from_pretrained('google-bert/bert-base-uncased')
+model_path = "/root/autodl-tmp/models--bert-base-uncased/snapshots/86b5e0934494bd15c9632b12f734a8a67f723594"
+# bert = BertModel.from_pretrained('google-bert/bert-base-uncased')
 bert = BertModel.from_pretrained(model_path,local_files_only=True)
 outputs = bert(sent_ids, att_mask)
 att_mask = att_mask.unsqueeze(-1)
